@@ -1,0 +1,134 @@
+---
+title: "LLB 1 - Analytical Review Regarding Non-Profit Products "
+author: "Yudhian Azhar"
+date: "1/2/2020"
+output:
+  html_document:
+    themes: flatly
+    highlight: zenburn
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+# BACKGROUND
+
+Latar belakang dari LLB ini adalah untuk membantu user dari data Retail.CSV agar dapat melakukan pengambilan keputusan
+terkait dengan produk-produk yang seharusnya perlu dilakukan review kembali terkait dengan kebjakan harga **(pricing policy)**
+dan **costing**.
+
+  ## BASIC FINANCIAL THEORY
+  Adapun dasar teori keuangan yang saya ingin gunakan adalah terkait dengan perhitungan **Net Sales** dan **Profit**.
+
+          Dimana ;
+          
+          Net Sales = Sales - Sales Discount - Sales Return
+          *Ini adalah dasar perhitungan untuk menghitung Net Sales yang berlaku secara umum
+          
+          Profit = Net Sales - COGS - Total Expenses
+          *Ini adalah dasar perhitungan untuk menghitung Profit yang berlaku secara umum
+
+
+  ## MAIN PROBLEM RELATED TO RETAIL.CSV
+
+  1. Tidak ada data terkait dengan total expenses dan COGS, sehingga harus dibuatkan kolom khusus terkait dengan COGS dan expenses
+  2. Belum ada pengelompokan profit berdasarkan segment customer
+
+
+
+# THE PROBLEM SOLVING PHASES
+
+Untuk melakukan analisa dari penjelasan diatas, berikut adalah langkah-langkah yang saya lakukan dalam menyelesaikan permasalahan
+diatas.
+
+```{r}
+
+#1. Import CSV file
+retail.master <- read.csv("retail.csv")
+
+#2. Analayze data structure and type
+str(retail.master)  
+
+#3. Quick view of statistics from each columns
+summary(retail.master) 
+
+#4. Perform explicit coercion of date
+retail.master$Order.Date <- as.Date(retail.master$Order.Date)
+retail.master$Ship.Date <- as.Date(retail.master$Ship.Date)
+
+#5. Checking the changes made by explicit coercion
+str(retail.master) 
+
+#6. Subsetting, creating new column and saving new object
+retail.analysis <- retail.master %>% 
+  select(Segment, Category, Sub.Category, Sales, Profit) %>% 
+  mutate("Estimated COGS & Expenses" = Sales-Profit, "Net Profit Margin" = Profit/Sales) 
+
+retail.analysis
+
+#8. Analyze the main problem of the topic 
+retail.analysis.final <- retail.analysis %>% 
+  group_by(Segment, Category, Sub.Category) %>% 
+  summarise(Sales = sum(Sales), Profit = sum(Profit), 
+            `Estimated COGS & Expenses` = sum(`Estimated COGS & Expenses`),
+            "Net Profit Margin" = sum(Profit/Sales)) %>% 
+  ungroup() %>% 
+  arrange(-desc(Profit))
+
+retail.analysis.final
+
+#9. Re-formatting numbering formats and highlights to make it easier to be readed
+
+retail.analysis.final$Sales <- format(retail.analysis.final$Sales, big.mark = ",", decimal.mark = ".",
+                                      nsmall = 2, scientific = F, digits = 2)
+
+retail.analysis.final$Profit <- format(retail.analysis.final$Profit, big.mark = ",", decimal.mark = ".",
+                                      nsmall = 2, scientific = F, digits = 2)
+
+retail.analysis.final$`Estimated COGS & Expenses` <- format(retail.analysis.final$`Estimated COGS & Expenses`, big.mark = ",",
+                                                    decimal.mark = ".", nsmall = 2, scientific = F, digits = 2)
+                                      
+retail.analysis.final$`Net Profit Margin` <- format(retail.analysis.final$`Net Profit Margin`, big.mark = ",",
+                                                    decimal.mark = ".", nsmall = 2, scientific = F, digits = 2)
+
+
+retail.analysis.presentation <- retail.analysis.final %>% 
+  arrange(-desc(Profit)) %>% 
+  head(5)
+  
+
+```
+
+
+# RESULT
+  Dari hasil analisa diatas, saya memberikan input kepada manajemen sebagai berikut :
+  
+  1. Category Furniture untuk sub.category tables dan bookcases memiliki kecenderungan overstated dalam perhitungan biayanya.
+  sehingga menyebabkan kerugian;
+  2. Untuk Category Office Supplies dengan Sub.Category Supplies segment Consumer, sebaikanya manajemen juga concern akan negative profit yang terjadi
+
+
+```{r}
+# Final Output
+retail.analysis.presentation %>% 
+  head(5)
+
+```
+
+
+
+
+
+
+
+
+
+
